@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-node@v4
 
       - name: 라이브러리 설치
-        run: pnpm install
+        run: pnpm ci
 
       - name: 테스트 실행하기
         run: pnpm test
