@@ -17,9 +17,14 @@ jobs:
 
       - name: Node 설치
         uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: install pnpm
+        run: npm install -g pnpm
 
       - name: 라이브러리 설치
-        run: pnpm ci
+        run: pnpm install
 
       - name: 테스트 실행하기
         run: pnpm test
