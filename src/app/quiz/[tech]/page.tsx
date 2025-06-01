@@ -1,253 +1,285 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { getQuestionsForTechStack, type QuizData } from "@/lib/quiz-data";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { QuizQuestion } from "@/types";
+import { getQuestionsByTechStack, calculateLevel } from "@/lib/quizData";
 
-export default function QuizPage() {
+interface QuizPageProps {
+  params: Promise<{ tech: string }>;
+}
+
+export default function QuizPage({ params }: QuizPageProps) {
   const router = useRouter();
-  const params = useParams();
-  const tech = decodeURIComponent(params.tech as string);
-
-  const [questions, setQuestions] = useState<QuizData[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<string, string>
-  >({});
+  const [resolvedParams, setResolvedParams] = useState<{ tech: string } | null>(
+    null
+  );
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
-  const [quizResult, setQuizResult] = useState<{
-    score: number;
-    level: string;
-    correctAnswers: number;
-    totalQuestions: number;
-  } | null>(null);
+  const [score, setScore] = useState(0);
+  const [level, setLevel] = useState("");
 
   useEffect(() => {
-    const quizQuestions = getQuestionsForTechStack(tech);
-    setQuestions(quizQuestions);
-  }, [tech]);
+    params.then(setResolvedParams);
+  }, [params]);
 
-  const currentQuestion = questions[currentQuestionIndex];
+  useEffect(() => {
+    if (resolvedParams) {
+      const techStack = decodeURIComponent(resolvedParams.tech);
+      const quizQuestions = getQuestionsByTechStack(techStack);
 
-  const handleAnswerSelect = (answerId: string) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [currentQuestion.id]: answerId,
-    }));
+      if (quizQuestions.length === 0) {
+        alert("해당 기술스택에 대한 퀴즈가 없습니다.");
+        router.push("/");
+        return;
+      }
+
+      // 랜덤하게 5문제 선택
+      const shuffled = [...quizQuestions].sort(() => 0.5 - Math.random());
+      setQuestions(shuffled.slice(0, Math.min(5, shuffled.length)));
+      setSelectedAnswers(new Array(Math.min(5, shuffled.length)).fill(""));
+    }
+  }, [resolvedParams, router]);
+
+  const handleAnswerSelect = (answer: string) => {
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestion] = answer;
+    setSelectedAnswers(newAnswers);
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
     } else {
-      finishQuiz();
+      // 점수 계산
+      let correctCount = 0;
+      questions.forEach((question, index) => {
+        if (selectedAnswers[index] === question.correctAnswer) {
+          correctCount++;
+        }
+      });
+
+      setScore(correctCount);
+      setLevel(calculateLevel(correctCount, questions.length));
+      setShowResult(true);
     }
   };
 
   const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1);
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
     }
   };
 
-  const finishQuiz = () => {
-    const correctAnswers = questions.reduce((count, question) => {
-      return selectedAnswers[question.id] === question.correct_answer
-        ? count + 1
-        : count;
-    }, 0);
-
-    const score = Math.round((correctAnswers / questions.length) * 100);
-
-    let level = "Beginner";
-    if (score >= 80) level = "Advanced";
-    else if (score >= 60) level = "Intermediate";
-
-    setQuizResult({
-      score,
-      level,
-      correctAnswers,
-      totalQuestions: questions.length,
-    });
-    setShowResult(true);
+  const handleRetakeQuiz = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswers(new Array(questions.length).fill(""));
+    setShowResult(false);
+    setScore(0);
+    setLevel("");
   };
 
-  const handleReturnWithResult = () => {
-    // 퀴즈 결과를 localStorage에 저장 (실제로는 부모 컴포넌트나 상태관리로 전달)
-    if (quizResult) {
-      localStorage.setItem(
-        "quizResult",
-        JSON.stringify({
-          tech,
-          ...quizResult,
-        })
-      );
+  const saveQuizResult = () => {
+    // 퀴즈 결과를 localStorage에 저장하여 신청서에서 사용할 수 있도록 함
+    if (resolvedParams) {
+      const result = {
+        techStack: decodeURIComponent(resolvedParams.tech),
+        score,
+        level,
+        timestamp: new Date().toISOString(),
+      };
+      localStorage.setItem("lastQuizResult", JSON.stringify(result));
+      router.push("/");
     }
-    router.back();
   };
 
-  if (questions.length === 0) {
+  if (!resolvedParams || questions.length === 0) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="text-gray-500">퀴즈를 불러오는 중...</div>
-      </div>
-    );
-  }
-
-  if (showResult && quizResult) {
-    return (
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">퀴즈 완료!</h2>
-          <p className="text-gray-600">{tech} 수준 평가가 완료되었습니다</p>
-        </div>
-
-        <div className="card text-center space-y-4">
-          <div className="text-4xl font-bold text-blue-600">
-            {quizResult.score}점
-          </div>
-          <div className="text-lg">
-            <span className="font-semibold text-gray-900">수준: </span>
-            <span
-              className={`font-bold ${
-                quizResult.level === "Advanced"
-                  ? "text-green-600"
-                  : quizResult.level === "Intermediate"
-                  ? "text-yellow-600"
-                  : "text-blue-600"
-              }`}
-            >
-              {quizResult.level}
-            </span>
-          </div>
-          <div className="text-sm text-gray-600">
-            {quizResult.correctAnswers}개 / {quizResult.totalQuestions}개 정답
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h3 className="font-semibold text-gray-900">수준별 설명</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-              <span className="font-medium text-green-800">
-                Advanced (80점 이상)
-              </span>
-              <span className="text-green-600">고급 수준</span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
-              <span className="font-medium text-yellow-800">
-                Intermediate (60-79점)
-              </span>
-              <span className="text-yellow-600">중급 수준</span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-              <span className="font-medium text-blue-800">
-                Beginner (59점 이하)
-              </span>
-              <span className="text-blue-600">초급 수준</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setShowResult(false);
-              setCurrentQuestionIndex(0);
-              setSelectedAnswers({});
-              setQuizResult(null);
-            }}
-            className="flex-1 btn-outline"
-          >
-            다시 도전
-          </button>
-          <button
-            onClick={handleReturnWithResult}
-            className="flex-1 btn-primary"
-          >
-            결과 확인
-          </button>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">퀴즈를 불러오는 중...</p>
         </div>
       </div>
     );
   }
+
+  const techStack = decodeURIComponent(resolvedParams.tech);
+
+  if (showResult) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <Link href="/" className="text-xl font-bold text-gray-900">
+                개발자 스터디 매칭
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="card p-8 text-center">
+            <div className="text-6xl mb-4">
+              {score === questions.length
+                ? "🎉"
+                : score >= questions.length * 0.6
+                ? "👏"
+                : "💪"}
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {techStack} 퀴즈 완료!
+            </h2>
+
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <div className="text-3xl font-bold text-blue-600 mb-2">
+                {score} / {questions.length}
+              </div>
+              <div className="text-lg text-gray-600 mb-4">
+                정답률: {Math.round((score / questions.length) * 100)}%
+              </div>
+
+              <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium">
+                <span
+                  className={
+                    level === "advanced"
+                      ? "bg-red-100 text-red-800"
+                      : level === "intermediate"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-green-100 text-green-800"
+                  }
+                >
+                  {level === "advanced"
+                    ? "고급"
+                    : level === "intermediate"
+                    ? "중급"
+                    : "초급"}{" "}
+                  수준
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={saveQuizResult}
+                className="btn btn-primary w-full"
+              >
+                결과 저장하고 메인으로
+              </button>
+              <button
+                onClick={handleRetakeQuiz}
+                className="btn btn-secondary w-full"
+              >
+                다시 도전하기
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const currentQ = questions[currentQuestion];
+  const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{tech} 퀴즈</h2>
-        <p className="text-gray-600">
-          문제 {currentQuestionIndex + 1} / {questions.length}
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="text-xl font-bold text-gray-900">
+              개발자 스터디 매칭
+            </Link>
+            <span className="text-sm text-gray-500">
+              {currentQuestion + 1} / {questions.length}
+            </span>
+          </div>
+        </div>
+      </header>
 
-      {/* 진행률 바 */}
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      {/* Progress Bar */}
+      <div className="w-full bg-gray-200 h-2">
         <div
-          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-          style={{
-            width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
-          }}
+          className="bg-blue-600 h-2 transition-all duration-300 ease-out"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* 현재 문제 */}
-      {currentQuestion && (
-        <div className="space-y-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {currentQuestion.question}
-            </h3>
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="card">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <span className="badge badge-blue">{techStack}</span>
+              <span className="text-sm text-gray-500">
+                문제 {currentQuestion + 1}
+              </span>
+            </div>
 
+            <h2 className="text-xl font-semibold text-gray-900">
+              {currentQ.question}
+            </h2>
+          </div>
+
+          <div className="p-6">
             <div className="space-y-3">
-              {currentQuestion.options.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleAnswerSelect(option.id)}
-                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                    selectedAnswers[currentQuestion.id] === option.id
-                      ? "border-blue-600 bg-blue-50 text-blue-900"
-                      : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+              {currentQ.options.map((option, index) => (
+                <label
+                  key={index}
+                  className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                    selectedAnswers[currentQuestion] === option
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <div className="flex items-center">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-current mr-3 flex items-center justify-center text-sm font-bold">
-                      {option.id.toUpperCase()}
-                    </span>
-                    <span>{option.text}</span>
+                  <input
+                    type="radio"
+                    name={`question-${currentQuestion}`}
+                    value={option}
+                    checked={selectedAnswers[currentQuestion] === option}
+                    onChange={() => handleAnswerSelect(option)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 mr-3 ${
+                      selectedAnswers[currentQuestion] === option
+                        ? "border-blue-500 bg-blue-500"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {selectedAnswers[currentQuestion] === option && (
+                      <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                    )}
                   </div>
-                </button>
+                  <span className="text-gray-900">{option}</span>
+                </label>
               ))}
             </div>
-          </div>
 
-          {/* 네비게이션 */}
-          <div className="flex gap-3">
-            <button
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              이전
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={!selectedAnswers[currentQuestion.id]}
-              className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {currentQuestionIndex === questions.length - 1 ? "완료" : "다음"}
-            </button>
-          </div>
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={handlePrevious}
+                disabled={currentQuestion === 0}
+                className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                이전
+              </button>
 
-          {/* 현재 선택된 답안 정보 */}
-          {selectedAnswers[currentQuestion.id] && (
-            <div className="text-sm text-gray-600 text-center">
-              선택한 답안: {selectedAnswers[currentQuestion.id].toUpperCase()}
+              <button
+                onClick={handleNext}
+                disabled={!selectedAnswers[currentQuestion]}
+                className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {currentQuestion === questions.length - 1 ? "완료" : "다음"}
+              </button>
             </div>
-          )}
+          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }

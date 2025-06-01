@@ -1,321 +1,380 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { v4 as uuidv4 } from "uuid";
+import Link from "next/link";
+import { Study, MeetingType, Level } from "@/types";
+import { storage } from "@/lib/storage";
 
-const TECH_STACKS = [
-  "React",
-  "Vue",
-  "Angular",
-  "Node.js",
-  "Python",
-  "Java",
-  "TypeScript",
-  "JavaScript",
-];
-const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+interface FormData {
+  title: string;
+  description: string;
+  meetingType: MeetingType;
+  techStack: string[];
+  level: Level;
+  expectedKnowledge: string;
+  maxParticipants: number;
+  region: string;
+  contactInfo: string;
+}
 
 export default function CreateStudyPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hostKey, setHostKey] = useState("");
+  const [studyId, setStudyId] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
-    meeting_type: "online" as "online" | "offline" | "hybrid",
-    tech_stack: [] as string[],
-    level: "",
-    expected_knowledge: "",
-    max_participants: 4,
+    meetingType: "online",
+    techStack: [],
+    level: "beginner",
+    expectedKnowledge: "",
+    maxParticipants: 4,
     region: "",
-    contact_info: "",
+    contactInfo: "",
   });
 
-  const handleTechStackToggle = (tech: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tech_stack: prev.tech_stack.includes(tech)
-        ? prev.tech_stack.filter((t) => t !== tech)
-        : [...prev.tech_stack, tech],
-    }));
+  const techStacks = [
+    "React",
+    "Vue",
+    "Angular",
+    "JavaScript",
+    "TypeScript",
+    "Node.js",
+    "Python",
+    "Java",
+    "C++",
+  ];
+
+  const handleTechStackChange = (tech: string, checked: boolean) => {
+    if (checked) {
+      setFormData((prev) => ({
+        ...prev,
+        techStack: [...prev.techStack, tech],
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        techStack: prev.techStack.filter((t) => t !== tech),
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (
-      !formData.title ||
-      !formData.contact_info ||
-      formData.tech_stack.length === 0 ||
-      !formData.level
-    ) {
-      alert("필수 필드를 모두 입력해주세요.");
-      return;
-    }
-
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase
-        .from("studies")
-        .insert([
-          {
-            id: uuidv4(),
-            ...formData,
-          },
-        ])
-        .select();
+      const id = storage.generateId();
+      const key = storage.generateHostKey();
 
-      if (error) throw error;
+      const study: Study = {
+        id,
+        ...formData,
+        createdAt: new Date().toISOString(),
+        hostKey: key,
+      };
 
-      alert("스터디가 성공적으로 생성되었습니다!");
-      router.push("/");
+      storage.addStudy(study);
+
+      setStudyId(id);
+      setHostKey(key);
+      setIsSuccess(true);
     } catch (error) {
-      console.error("스터디 생성 실패:", error);
-      alert("스터디 생성에 실패했습니다. 다시 시도해주세요.");
+      console.error("스터디 생성 중 오류:", error);
+      alert("스터디 생성 중 오류가 발생했습니다.");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">스터디 생성</h2>
-        <p className="text-gray-600">새로운 스터디를 만들어보세요</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 기본 정보 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">기본 정보</h3>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              스터디 제목 *
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
-              }
-              className="input-field"
-              placeholder="예: React 기초부터 실전까지"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              스터디 설명
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              className="input-field"
-              rows={4}
-              placeholder="스터디에 대한 자세한 설명을 작성해주세요..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              최대 인원 *
-            </label>
-            <select
-              value={formData.max_participants}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  max_participants: Number(e.target.value),
-                }))
-              }
-              className="input-field"
-              required
-            >
-              {[2, 3, 4, 5, 6, 7, 8].map((num) => (
-                <option key={num} value={num}>
-                  {num}명
-                </option>
-              ))}
-            </select>
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full mx-4">
+          <div className="card p-8 text-center">
+            <div className="text-green-500 text-5xl mb-4">✅</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              스터디가 생성되었습니다!
+            </h2>
+            <div className="space-y-4 mb-6">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">관리 링크</p>
+                <p className="text-xs text-gray-800 break-all font-mono">
+                  {`${window.location.origin}/study/${studyId}/manage?key=${hostKey}`}
+                </p>
+                <p className="text-xs text-red-600 mt-2">
+                  ⚠️ 이 링크를 잃어버리면 스터디를 관리할 수 없습니다!
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Link
+                href={`/study/${studyId}`}
+                className="btn btn-primary w-full"
+              >
+                스터디 보기
+              </Link>
+              <Link href="/" className="btn btn-secondary w-full">
+                메인으로 돌아가기
+              </Link>
+            </div>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* 모임 형태 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">모임 형태</h3>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="text-xl font-bold text-gray-900">
+              개발자 스터디 매칭
+            </Link>
+            <Link href="/" className="btn btn-secondary">
+              목록으로
+            </Link>
+          </div>
+        </div>
+      </header>
 
-          <div className="flex gap-2">
-            {[
-              { value: "online", label: "온라인" },
-              { value: "offline", label: "오프라인" },
-              { value: "hybrid", label: "하이브리드" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    meeting_type: option.value as any,
-                  }))
-                }
-                className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                  formData.meeting_type === option.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="card">
+          <div className="p-6 border-b border-gray-200">
+            <h1 className="text-2xl font-bold text-gray-900">
+              새 스터디 만들기
+            </h1>
+            <p className="text-gray-600 mt-2">
+              개발자들과 함께 공부할 스터디를 만들어보세요.
+            </p>
           </div>
 
-          {(formData.meeting_type === "offline" ||
-            formData.meeting_type === "hybrid") && (
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* 제목 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                지역
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                스터디 제목 *
               </label>
               <input
                 type="text"
-                value={formData.region}
+                required
+                value={formData.title}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, region: e.target.value }))
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
-                className="input-field"
-                placeholder="예: 강남구, 홍대, 판교 등"
+                className="input"
+                placeholder="예: React 함께 공부하기"
               />
             </div>
-          )}
-        </div>
 
-        {/* 기술스택 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">기술스택 *</h3>
+            {/* 설명 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                스터디 설명 *
+              </label>
+              <textarea
+                required
+                rows={4}
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                className="input resize-none"
+                placeholder="스터디에 대한 자세한 설명을 작성해주세요..."
+              />
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            {TECH_STACKS.map((tech) => (
-              <button
-                key={tech}
-                type="button"
-                onClick={() => handleTechStackToggle(tech)}
-                className={`px-3 py-2 rounded-lg font-medium transition-colors ${
-                  formData.tech_stack.includes(tech)
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+            {/* 진행방식 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                진행방식 *
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { value: "online", label: "온라인" },
+                  { value: "offline", label: "오프라인" },
+                  { value: "hybrid", label: "하이브리드" },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex items-center cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name="meetingType"
+                      value={option.value}
+                      checked={formData.meetingType === option.value}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          meetingType: e.target.value as
+                            | "online"
+                            | "offline"
+                            | "hybrid",
+                        }))
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-sm">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* 기술스택 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                기술스택 * (하나 이상 선택)
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {techStacks.map((tech) => (
+                  <label
+                    key={tech}
+                    className="flex items-center cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.techStack.includes(tech)}
+                      onChange={(e) =>
+                        handleTechStackChange(tech, e.target.checked)
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-sm">{tech}</span>
+                  </label>
+                ))}
+              </div>
+              {formData.techStack.length === 0 && (
+                <p className="text-red-600 text-sm mt-1">
+                  최소 하나의 기술스택을 선택해주세요.
+                </p>
+              )}
+            </div>
+
+            {/* 수준 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                대상 수준 *
+              </label>
+              <select
+                value={formData.level}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    level: e.target.value as
+                      | "beginner"
+                      | "intermediate"
+                      | "advanced",
+                  }))
+                }
+                className="input"
               >
-                {tech}
+                <option value="beginner">초급</option>
+                <option value="intermediate">중급</option>
+                <option value="advanced">고급</option>
+              </select>
+            </div>
+
+            {/* 필요 지식 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                필요한 사전 지식 *
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={formData.expectedKnowledge}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    expectedKnowledge: e.target.value,
+                  }))
+                }
+                className="input resize-none"
+                placeholder="참여하기 위해 필요한 사전 지식이나 경험을 작성해주세요..."
+              />
+            </div>
+
+            {/* 최대 인원 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                최대 참여 인원 *
+              </label>
+              <input
+                type="number"
+                min="2"
+                max="10"
+                value={formData.maxParticipants}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    maxParticipants: parseInt(e.target.value) || 2,
+                  }))
+                }
+                className="input"
+              />
+            </div>
+
+            {/* 지역 (오프라인/하이브리드인 경우) */}
+            {(formData.meetingType === "offline" ||
+              formData.meetingType === "hybrid") && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  지역 *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.region}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, region: e.target.value }))
+                  }
+                  className="input"
+                  placeholder="예: 서울 강남구, 부산 해운대구"
+                />
+              </div>
+            )}
+
+            {/* 연락처 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                연락처 *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.contactInfo}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    contactInfo: e.target.value,
+                  }))
+                }
+                className="input"
+                placeholder="이메일, 카카오톡 오픈챗 링크 등"
+              />
+            </div>
+
+            {/* 제출 버튼 */}
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting || formData.techStack.length === 0}
+                className="btn btn-primary w-full"
+              >
+                {isSubmitting ? "생성 중..." : "스터디 만들기"}
               </button>
-            ))}
-          </div>
-
-          {formData.tech_stack.length === 0 && (
-            <p className="text-sm text-red-500">
-              최소 1개 이상의 기술스택을 선택해주세요
-            </p>
-          )}
+            </div>
+          </form>
         </div>
-
-        {/* 수준 설정 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">수준 설정 *</h3>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              대상 수준
-            </label>
-            <select
-              value={formData.level}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, level: e.target.value }))
-              }
-              className="input-field"
-              required
-            >
-              <option value="">수준을 선택해주세요</option>
-              {LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              요구되는 지식
-            </label>
-            <textarea
-              value={formData.expected_knowledge}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  expected_knowledge: e.target.value,
-                }))
-              }
-              className="input-field"
-              rows={3}
-              placeholder="참여자들이 미리 알고 있어야 할 지식이나 경험을 작성해주세요..."
-            />
-          </div>
-        </div>
-
-        {/* 연락처 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">연락처 정보 *</h3>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              연락처
-            </label>
-            <input
-              type="text"
-              value={formData.contact_info}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  contact_info: e.target.value,
-                }))
-              }
-              className="input-field"
-              placeholder="이메일, 전화번호, 카카오톡 ID 등"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              신청자들이 연락할 수 있는 방법을 입력해주세요
-            </p>
-          </div>
-        </div>
-
-        {/* 제출 버튼 */}
-        <div className="flex gap-3 pt-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex-1 btn-secondary"
-            disabled={loading}
-          >
-            취소
-          </button>
-          <button
-            type="submit"
-            className="flex-1 btn-primary"
-            disabled={loading}
-          >
-            {loading ? "생성 중..." : "스터디 생성"}
-          </button>
-        </div>
-      </form>
+      </main>
     </div>
   );
 }

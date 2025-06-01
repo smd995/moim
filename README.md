@@ -1,252 +1,279 @@
-# 개발자 스터디 매칭 - MOIM
+# 개발자 스터디 매칭 플랫폼
 
-Next.js 15 App Router + TypeScript + Supabase를 사용한 개발자 스터디 매칭 웹 애플리케이션입니다.
+Next.js 15 App Router + TypeScript로 만든 개발자 스터디 매칭 웹 애플리케이션입니다.
 
 ## 🚀 주요 기능
 
-### 🎯 핵심 특징
+### ✨ 핵심 특징
 
-- **회원가입/로그인 없이 접근 가능** - 누구나 쉽게 이용
-- **모바일 우선 반응형 디자인** - Tailwind CSS로 구현
-- **스터디장 승인제** - 수준 매칭을 통한 효율적인 스터디 구성
-- **수준 평가 퀴즈 시스템** - 기술스택별 자동 수준 분류
+- **회원가입 없는 간편한 접근**: 누구나 쉽게 스터디를 만들고 참여할 수 있습니다
+- **모바일 우선 반응형 디자인**: 모든 디바이스에서 최적화된 사용자 경험
+- **클라이언트 사이드 데이터 관리**: localStorage를 활용한 빠른 데이터 처리
+- **스터디장 승인제**: 체계적인 스터디 멤버 관리
 
-### 📱 주요 기능
+### 📚 주요 기능들
 
-1. **스터디 생성**
+1. **스터디 생성 및 관리**
 
-   - 기본 정보 설정 (제목, 설명, 최대 인원)
-   - 모임 형태 선택 (온라인/오프라인/하이브리드)
-   - 기술스택 및 수준 설정
-   - 연락처 정보 등록
+   - 상세한 스터디 정보 등록
+   - 기술스택, 수준, 진행방식 설정
+   - 스터디장 전용 관리 페이지
 
-2. **스터디 목록 & 필터링**
+2. **지능형 매칭 시스템**
 
-   - 카드 기반 레이아웃
-   - 기술스택별 필터
-   - 수준별/지역별/형태별 필터
-   - 실시간 검색
+   - 기술스택별 실시간 퀴즈
+   - 자동 수준 평가 및 분류
+   - 퀴즈 점수 기반 신청 검증
 
-3. **수준 평가 퀴즈**
+3. **고도화된 필터링**
 
-   - 프로그래밍 기초 개념 (5문제)
-   - 기술스택별 전문 문제
-   - 자동 수준 분류 (Beginner/Intermediate/Advanced)
+   - 기술스택, 수준, 지역, 진행방식별 필터
+   - 실시간 검색 기능
+   - 직관적인 카드 기반 UI
 
-4. **스터디 참여 신청**
-
-   - 퀴즈 응시 후 수준 확인
-   - 간단한 자기소개 및 참여 동기 작성
-
-5. **스터디장 승인 시스템**
-   - 신청자 목록 및 정보 확인
-   - 수준 매칭도 표시
-   - 승인/거절 기능
+4. **포괄적인 신청 관리**
+   - 상세한 신청서 양식
+   - 스터디장의 승인/거절 시스템
+   - 신청 상태 실시간 추적
 
 ## 🛠 기술 스택
 
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **Deployment**: Vercel (추천)
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript
+- **Styling**: Tailwind CSS 4
+- **데이터 관리**: localStorage (클라이언트 사이드)
+- **상태 관리**: React Hooks (useState, useEffect, Custom Hooks)
 
-## 📁 프로젝트 구조
+## �� 페이지 구조
+
+```
+/ (홈페이지)
+├── 스터디 목록 및 필터링
+├── 검색 기능
+└── 스터디 생성 버튼
+
+/create (스터디 생성)
+├── 스터디 정보 입력 폼
+├── 기술스택 및 조건 설정
+└── 관리 링크 생성
+
+/study/[id] (스터디 상세)
+├── 스터디 정보 표시
+├── 퀴즈 링크
+└── 참여 신청 폼
+
+/quiz/[tech] (기술스택별 퀴즈)
+├── 5문제 랜덤 출제
+├── 진행률 표시
+└── 점수 기반 수준 평가
+
+/study/[id]/manage (스터디 관리)
+├── 신청자 목록
+├── 승인/거절 기능
+└── 상태별 분류 표시
+```
+
+## 🚀 시작하기
+
+### 필수 요구사항
+
+- Node.js 18+
+- npm 또는 yarn
+
+### 설치 및 실행
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 서버 실행
+npm run dev
+
+# 브라우저에서 http://localhost:3000 접속
+```
+
+### 빌드 및 배포
+
+```bash
+# 프로덕션 빌드
+npm run build
+
+# 프로덕션 서버 실행
+npm start
+```
+
+## 📊 데이터 구조
+
+### Study (스터디)
+
+```typescript
+interface Study {
+  id: string;
+  title: string;
+  description: string;
+  meetingType: "online" | "offline" | "hybrid";
+  techStack: string[];
+  level: "beginner" | "intermediate" | "advanced";
+  expectedKnowledge: string;
+  maxParticipants: number;
+  region?: string;
+  contactInfo: string;
+  createdAt: string;
+  hostKey: string; // 스터디장 관리용
+}
+```
+
+### Application (신청서)
+
+```typescript
+interface Application {
+  id: string;
+  studyId: string;
+  nickname: string;
+  contact: string;
+  level: string;
+  quizScore: number;
+  introduction: string;
+  motivation: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+```
+
+### QuizQuestion (퀴즈)
+
+```typescript
+interface QuizQuestion {
+  id: string;
+  techStack: string;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  difficulty: string;
+}
+```
+
+## 🎯 사용 방법
+
+### 1. 스터디 생성하기
+
+1. 메인 페이지에서 "스터디 만들기" 클릭
+2. 스터디 정보 입력 (제목, 설명, 기술스택 등)
+3. 생성 완료 후 관리 링크 저장 ⚠️ **중요: 관리 링크를 잃어버리면 스터디 관리 불가**
+
+### 2. 스터디 참여하기
+
+1. 관심있는 스터디 카드에서 "상세보기" 클릭
+2. 기술스택 퀴즈 풀기 (선택사항)
+3. 신청서 작성 후 제출
+4. 스터디장 승인 대기
+
+### 3. 스터디 관리하기 (스터디장)
+
+1. 스터디 생성 시 받은 관리 링크 접속
+2. 신청자 목록 확인
+3. 신청서 내용 검토 후 승인/거절
+
+### 4. 퀴즈 시스템
+
+- 기술스택별 5문제 랜덤 출제
+- 점수에 따른 자동 수준 분류
+  - 80% 이상: 고급 (Advanced)
+  - 60% 이상: 중급 (Intermediate)
+  - 60% 미만: 초급 (Beginner)
+
+## 🎨 UI/UX 특징
+
+- **깔끔한 디자인**: 흰색/회색 베이스 + 블루 포인트 컬러
+- **카드 기반 레이아웃**: 직관적인 정보 표시
+- **모바일 최적화**: 터치 친화적인 버튼 크기
+- **실시간 피드백**: 로딩 상태 및 결과 알림
+
+## 🗂 프로젝트 구조
 
 ```
 src/
-├── app/
-│   ├── layout.tsx                 # 메인 레이아웃
-│   ├── page.tsx                   # 홈페이지 (스터디 목록)
-│   ├── create/
-│   │   └── page.tsx              # 스터디 생성 페이지
-│   ├── study/
-│   │   └── [id]/
-│   │       ├── page.tsx          # 스터디 상세 페이지
-│   │       └── applications/
-│   │           └── page.tsx      # 신청자 관리 페이지
-│   └── quiz/
-│       └── [tech]/
-│           └── page.tsx          # 기술스택별 퀴즈 페이지
-├── lib/
-│   ├── supabase.ts               # Supabase 클라이언트 설정
-│   └── quiz-data.ts              # 퀴즈 문제 데이터
-└── globals.css                   # 전역 스타일
+├── app/                    # Next.js App Router 페이지
+│   ├── create/             # 스터디 생성 페이지
+│   ├── quiz/[tech]/        # 기술스택별 퀴즈 페이지
+│   ├── study/[id]/         # 스터디 상세 페이지
+│   │   └── manage/         # 스터디 관리 페이지
+│   ├── layout.tsx          # 루트 레이아웃
+│   ├── page.tsx            # 메인 페이지
+│   └── globals.css         # 글로벌 스타일
+├── types/                  # TypeScript 타입 정의
+├── lib/                    # 유틸리티 및 데이터 관리
+│   ├── storage.ts          # localStorage 관리
+│   ├── quizData.ts         # 퀴즈 데이터 및 로직
+│   └── sampleData.ts       # 개발용 샘플 데이터
+└── hooks/                  # 커스텀 React 훅
+    └── useLocalStorage.ts  # localStorage 훅
 ```
 
-## 🏗 설치 및 실행
+## 🧪 테스트 및 개발
 
-### 1. 프로젝트 클론 및 의존성 설치
+### 샘플 데이터
 
-```bash
-# 의존성이 이미 설치되어 있다면 스킵
-npm install
+개발 편의를 위해 4개의 샘플 스터디가 자동으로 생성됩니다:
+
+- React 완전 정복 스터디 (중급, 온라인)
+- Python 알고리즘 스터디 (초급, 오프라인)
+- Node.js 백엔드 마스터 (고급, 하이브리드)
+- Vue.js 프론트엔드 스터디 (초급, 온라인)
+
+### 관리 링크 테스트
+
+샘플 스터디 관리 페이지 접속:
+
+```
+/study/sample-1/manage?key=sample-host-key-1
+/study/sample-2/manage?key=sample-host-key-2
+/study/sample-3/manage?key=sample-host-key-3
+/study/sample-4/manage?key=sample-host-key-4
 ```
 
-### 2. Supabase 설정
+## 🔧 개발 가이드
 
-1. [Supabase](https://supabase.com)에서 새 프로젝트 생성
-2. 환경 변수 설정:
+### 새로운 기술스택 퀴즈 추가
 
-```bash
-# .env.local 파일 생성
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+`src/lib/quizData.ts`에서 `quizQuestions` 배열에 새 문제 추가:
+
+```typescript
+{
+  id: 'unique-id',
+  techStack: '기술스택명',
+  question: '문제 내용',
+  options: ['선택지1', '선택지2', '선택지3', '선택지4'],
+  correctAnswer: '정답',
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+}
 ```
 
-### 3. 데이터베이스 스키마 설정
+### 커스텀 스타일 추가
 
-Supabase SQL Editor에서 다음 스키마를 실행하세요:
+`src/app/globals.css`에서 Tailwind CSS 유틸리티 클래스 확장:
 
-```sql
--- studies 테이블
-create table studies (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  description text,
-  meeting_type text check (meeting_type in ('online', 'offline', 'hybrid')),
-  tech_stack text[],
-  level text,
-  expected_knowledge text,
-  max_participants integer,
-  region text,
-  contact_info text,
-  created_at timestamp default now()
-);
-
--- applications 테이블
-create table applications (
-  id uuid primary key default gen_random_uuid(),
-  study_id uuid references studies(id),
-  nickname text not null,
-  contact text not null,
-  level text,
-  quiz_score integer,
-  introduction text,
-  motivation text,
-  status text default 'pending' check (status in ('pending', 'approved', 'rejected')),
-  created_at timestamp default now()
-);
-
--- quiz_questions 테이블 (선택사항 - 현재는 로컬 데이터 사용)
-create table quiz_questions (
-  id uuid primary key default gen_random_uuid(),
-  tech_stack text,
-  question text,
-  options jsonb,
-  correct_answer text,
-  difficulty text
-);
-
--- Row Level Security 활성화
-alter table studies enable row level security;
-alter table applications enable row level security;
-alter table quiz_questions enable row level security;
-
--- 모든 사용자가 읽기 가능하도록 정책 설정
-create policy "Studies are viewable by everyone" on studies for select using (true);
-create policy "Applications are viewable by everyone" on applications for select using (true);
-create policy "Quiz questions are viewable by everyone" on quiz_questions for select using (true);
-
--- 모든 사용자가 생성 가능하도록 정책 설정
-create policy "Everyone can create studies" on studies for insert with check (true);
-create policy "Everyone can create applications" on applications for insert with check (true);
-
--- 업데이트 정책 (applications 상태 변경용)
-create policy "Everyone can update applications" on applications for update using (true);
+```css
+.custom-button {
+  @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700;
+}
 ```
 
-### 4. 개발 서버 실행
+## 📝 라이선스
 
-```bash
-npm run dev
-```
-
-브라우저에서 [http://localhost:3000](http://localhost:3000)을 열어 확인하세요.
-
-## 📱 페이지별 기능
-
-### 홈페이지 (/)
-
-- 스터디 목록을 카드 형태로 표시
-- 기술스택/수준/지역/형태별 필터링
-- 실시간 검색 및 정렬
-
-### 스터디 생성 (/create)
-
-- 단계별 스터디 정보 입력
-- 기술스택 다중 선택
-- 모임 형태별 추가 옵션
-
-### 퀴즈 (/quiz/[tech])
-
-- 프로그래밍 기초 + 기술스택별 문제
-- 진행률 표시 및 이전/다음 네비게이션
-- 자동 수준 분류 및 결과 표시
-
-## 🎨 디자인 시스템
-
-### 색상 팔레트
-
-- **Primary**: Blue 계열 (`blue-600`, `blue-700`)
-- **Background**: Gray 계열 (`gray-50`, `white`)
-- **Text**: Gray 계열 (`gray-900`, `gray-600`)
-- **Accent**: 상황별 색상 (success: green, warning: yellow)
-
-### 컴포넌트 클래스
-
-- `.card`: 기본 카드 스타일
-- `.btn-primary`: 주요 버튼
-- `.btn-secondary`: 보조 버튼
-- `.btn-outline`: 아웃라인 버튼
-- `.input-field`: 입력 필드
-- `.tag`: 태그/라벨
-
-## 🚀 배포
-
-### Vercel 배포 (추천)
-
-1. GitHub에 프로젝트 푸시
-2. [Vercel](https://vercel.com)에서 프로젝트 import
-3. 환경 변수 설정
-4. 자동 배포 완료
-
-## 🔧 커스터마이징
-
-### 기술스택 추가
-
-1. `src/lib/quiz-data.ts`에서 새로운 기술스택의 문제 추가
-2. 각 페이지의 `TECH_STACKS` 배열에 추가
-
-### 퀴즈 문제 추가
-
-1. `src/lib/quiz-data.ts`에서 해당 기술스택 배열에 문제 추가
-2. `QuizData` 타입을 따라 객체 구성
-
-### 디자인 수정
-
-1. `src/app/globals.css`에서 컴포넌트 클래스 수정
-2. Tailwind CSS 클래스로 스타일 조정
-
-## 📝 향후 개선 계획
-
-- [ ] 실시간 채팅 기능
-- [ ] 스터디 진행 상황 추적
-- [ ] 평가 및 리뷰 시스템
-- [ ] 푸시 알림 기능
-- [ ] 관리자 대시보드
-- [ ] 고급 필터링 옵션
+이 프로젝트는 MIT 라이선스 하에 있습니다.
 
 ## 🤝 기여하기
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. 이 저장소를 포크합니다
+2. 기능 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`)
+3. 변경사항을 커밋합니다 (`git commit -m 'Add some amazing feature'`)
+4. 브랜치에 푸시합니다 (`git push origin feature/amazing-feature`)
+5. Pull Request를 생성합니다
 
-## 📄 라이선스
+## 📞 문의
 
-이 프로젝트는 MIT 라이선스를 따릅니다.
+프로젝트에 대한 문의사항이나 버그 리포트는 이슈를 생성해 주세요.
 
 ---
 
-**MOIM** - 개발자들을 위한 스터디 매칭 플랫폼 💻✨
+**즐거운 스터디 매칭 되세요! 🎉**
