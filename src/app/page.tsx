@@ -1,103 +1,242 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { supabase, type Study } from "@/lib/supabase";
+
+const TECH_STACKS = [
+  "React",
+  "Vue",
+  "Angular",
+  "Node.js",
+  "Python",
+  "Java",
+  "TypeScript",
+  "JavaScript",
+];
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+const MEETING_TYPES = {
+  online: "온라인",
+  offline: "오프라인",
+  hybrid: "하이브리드",
+};
+
+export default function HomePage() {
+  const [studies, setStudies] = useState<Study[]>([]);
+  const [filteredStudies, setFilteredStudies] = useState<Study[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 필터 상태
+  const [selectedTech, setSelectedTech] = useState<string>("");
+  const [selectedLevel, setSelectedLevel] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("");
+
+  useEffect(() => {
+    fetchStudies();
+  }, []);
+
+  useEffect(() => {
+    filterStudies();
+  }, [studies, selectedTech, selectedLevel, selectedType]);
+
+  const fetchStudies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("studies")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setStudies(data || []);
+    } catch (error) {
+      console.error("스터디 목록 조회 실패:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterStudies = () => {
+    let filtered = studies;
+
+    if (selectedTech) {
+      filtered = filtered.filter((study) =>
+        study.tech_stack.includes(selectedTech)
+      );
+    }
+
+    if (selectedLevel) {
+      filtered = filtered.filter((study) => study.level === selectedLevel);
+    }
+
+    if (selectedType) {
+      filtered = filtered.filter(
+        (study) => study.meeting_type === selectedType
+      );
+    }
+
+    setFilteredStudies(filtered);
+  };
+
+  const clearFilters = () => {
+    setSelectedTech("");
+    setSelectedLevel("");
+    setSelectedType("");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-gray-500">스터디 목록을 불러오는 중...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">개발자 스터디</h2>
+        <p className="text-gray-600">함께 성장할 동료를 찾아보세요</p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* 필터 섹션 */}
+      <div className="space-y-4">
+        {/* 기술스택 필터 */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">기술스택</h3>
+          <div className="flex flex-wrap gap-2">
+            {TECH_STACKS.map((tech) => (
+              <button
+                key={tech}
+                onClick={() =>
+                  setSelectedTech(selectedTech === tech ? "" : tech)
+                }
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  selectedTech === tech
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {tech}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 수준 및 형태 필터 */}
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              수준
+            </label>
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="input-field text-sm"
+            >
+              <option value="">전체</option>
+              {LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              형태
+            </label>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="input-field text-sm"
+            >
+              <option value="">전체</option>
+              {Object.entries(MEETING_TYPES).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 필터 초기화 */}
+        {(selectedTech || selectedLevel || selectedType) && (
+          <button
+            onClick={clearFilters}
+            className="text-sm text-blue-600 hover:text-blue-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
+            필터 초기화
+          </button>
+        )}
+      </div>
+
+      {/* 스터디 목록 */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">
+            스터디 목록 ({filteredStudies.length})
+          </h3>
+          <a href="/create" className="btn-primary text-sm">
+            스터디 만들기
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {filteredStudies.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-500 mb-4">
+              조건에 맞는 스터디가 없습니다
+            </div>
+            <a href="/create" className="btn-primary">
+              첫 번째 스터디 만들기
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredStudies.map((study) => (
+              <StudyCard key={study.id} study={study} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+// 스터디 카드 컴포넌트
+function StudyCard({ study }: { study: Study }) {
+  return (
+    <a href={`/study/${study.id}`} className="block">
+      <div className="card hover:shadow-lg transition-shadow">
+        <div className="flex justify-between items-start mb-3">
+          <h4 className="text-lg font-semibold text-gray-900 line-clamp-1">
+            {study.title}
+          </h4>
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md whitespace-nowrap ml-2">
+            {MEETING_TYPES[study.meeting_type]}
+          </span>
+        </div>
+
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+          {study.description || "스터디 설명이 없습니다."}
+        </p>
+
+        <div className="flex flex-wrap gap-1 mb-3">
+          {study.tech_stack.map((tech) => (
+            <span key={tech} className="tag text-xs">
+              {tech}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex justify-between items-center text-sm text-gray-500">
+          <div className="flex items-center space-x-4">
+            <span>수준: {study.level}</span>
+            <span>최대 {study.max_participants}명</span>
+          </div>
+          {study.region && <span className="text-xs">{study.region}</span>}
+        </div>
+      </div>
+    </a>
   );
 }
